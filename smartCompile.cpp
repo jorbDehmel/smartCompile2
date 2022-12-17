@@ -135,13 +135,13 @@ int main(const int argc, const char *argv[])
             else if (tag == "-h" || tag == "--help")
             {
                 cout << tags::violet_bold
-                     << "Tag | Long version | Purpose\n"
-                     << "----------------------------\n"
-                     << "-u  | --use <CC>   | changes compilers\n"
-                     << "-o  | --output <P> | changes the output path\n"
-                     << "    | -org         | organizes files\n"
-                     << "-h  | --help       | shows this page\n"
-                     << "    | -<argname>   | adds an argument to the compiler call\n"
+                     << "Short version | Long version | Description\n"
+                     << "------------------------------------------\n"
+                     << "-u            | --use <CC>   | changes compilers\n"
+                     << "-o            | --output <P> | changes the output path\n"
+                     << "              | -org         | organizes files\n"
+                     << "-h            | --help       | shows this page\n"
+                     << "              | -<argname>   | adds an argument to the compiler call\n"
                      << "(Jorb Dehmel, 2022, jdehmel@outlook.com)\n"
                      << tags::reset;
 
