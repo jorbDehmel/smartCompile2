@@ -1,5 +1,7 @@
 // SC_ARGS -lboost_regex
 
+// TODO: Implement age-checking so as not to compile things that don't need it
+
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -12,7 +14,7 @@ using namespace boost;
 
 //////////////////////////////////
 
-string CC = "gcc";
+string CC = "clang++";
 string ARGS = "";
 
 //////////////////////////////////
