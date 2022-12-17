@@ -1,4 +1,5 @@
 // SC_ARGS -lboost_regex
+// Jordan Dehmel, 2022, jdehmel@outlook.com, github.com/jorbDehmel
 
 // TODO: Implement age-checking so as not to compile things that don't need it
 
@@ -162,6 +163,12 @@ int main(const int argc, const char *argv[])
 {
     try
     {
+        cout << tags::blue_bold
+             << "~~~~~~~~~~~~~~~~~~~~\n"
+             << "SmartCompile for C++\n"
+             << "~~~~~~~~~~~~~~~~~~~~\n"
+             << tags::reset;
+
         string tag;
         for (int i = 1; i < argc; i++)
         {
@@ -230,8 +237,10 @@ int main(const int argc, const char *argv[])
 
         link(makeObjs());
 
-        cout << tags::green_bold
+        cout << tags::green_bold << '\n'
+             << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
              << "Completed. (Output .out file(s) can be found in ./bin/ )\n"
+             << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
              << tags::reset;
     }
     catch (runtime_error &e)
