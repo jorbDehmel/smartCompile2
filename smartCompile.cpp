@@ -1,10 +1,9 @@
 #include <iostream>
-#include <vector>
 #include <string>
 #include <fstream>
 #include <boost/regex.hpp>
 
-#include "colorTags.hpp"
+#include "tags.hpp"
 
 using namespace std;
 
@@ -48,7 +47,9 @@ void smartSystem(string command)
 
 vector<string> makeObjs()
 {
-    cout << "Preparing to compile...\n\n";
+    cout << tags::green_bold
+         << "Preparing to compile...\n\n"
+         << tags::reset;
 
     string command = "mkdir -p " + BUILD_DIR;
     smartSystem(command);
@@ -75,14 +76,18 @@ vector<string> makeObjs()
     fin.close();
     system("rm .build/temp.txt");
 
-    cout << "\nCompiled " << objs.size() << " objects.\n";
+    cout << tags::green_bold
+         << "\nCompiled " << objs.size() << " objects.\n"
+         << tags::reset;
 
     return objs;
 }
 
 void link(const vector<string> objs)
 {
-    cout << "Calling linker...\n\n";
+    cout << tags::green_bold
+         << "Calling linker...\n\n"
+         << tags::reset;
 
     string command = CC + ' ' + ARGS + ' ';
 
@@ -93,7 +98,9 @@ void link(const vector<string> objs)
 
     smartSystem(command);
 
-    cout << "\nSuccessfully linked.\n";
+    cout << tags::green_bold
+         << "\nSuccessfully linked.\n"
+         << tags::reset;
 
     return;
 }
@@ -127,7 +134,7 @@ int main(const int argc, const char *argv[])
             }
             else if (tag == "-h" || tag == "--help")
             {
-                cout << ColorTags::thick_violet
+                cout << tags::violet_bold
                      << "Tag | Long version | Purpose\n"
                      << "----------------------------\n"
                      << "-u  | --use <CC>   | changes compilers\n"
@@ -135,8 +142,8 @@ int main(const int argc, const char *argv[])
                      << "    | -org         | organizes files\n"
                      << "-h  | --help       | shows this page\n"
                      << "    | -<argname>   | adds an argument to the compiler call\n"
-                     << "(Jorb Dehmel, 2022, jdehmel@outlook.com)\n\n"
-                     << ColorTags::return_tag;
+                     << "(Jorb Dehmel, 2022, jdehmel@outlook.com)\n"
+                     << tags::reset;
 
                 return 0;
             }
@@ -148,15 +155,15 @@ int main(const int argc, const char *argv[])
 
         link(makeObjs());
 
-        cout << ColorTags::thick_green
+        cout << tags::green_bold
              << "Completed.\n"
-             << ColorTags::return_tag;
+             << tags::reset;
     }
     catch (...)
     {
-        cout << ColorTags::thick_red
+        cout << tags::red_bold
              << "\nFatal error encountered; Canceling compilation...\n"
-             << ColorTags::return_tag;
+             << tags::reset;
         return 1;
     }
 
