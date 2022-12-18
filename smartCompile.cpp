@@ -1,8 +1,6 @@
 // SC_ARGS -lboost_regex
 // Jordan Dehmel, 2022, jdehmel@outlook.com, github.com/jorbDehmel
 
-// TODO: Implement age-checking so as not to compile things that don't need it
-
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -80,7 +78,7 @@ vector<string> makeObjs()
          << "Preparing to compile...\n"
          << tags::reset;
 
-    smartSystem("find -print >.build/temp.txt");
+    smartSystem("find -print >.build/temp.txt; touch .build/temp2.txt");
 
     ifstream fin(".build/temp.txt");
     tassert(fin.is_open());
@@ -88,8 +86,11 @@ vector<string> makeObjs()
     vector<string> cpps;
     vector<string> objs;
     string line;
+
     while (getline(fin, line))
     {
+        // Get age in seconds from epoch:
+        // stat --format='%Y' <path>
         if (regex_match(line, regex(".*?\\.cpp")))
         {
             cpps.push_back(line);
@@ -110,12 +111,39 @@ vector<string> makeObjs()
                 objs.push_back(".build/" + regex_replace(line, regex("\\.cpp"), ".o"));
             }
 
-            smartSystem(CC + " -c " + line + " -o " + objs[objs.size() - 1]);
+            long int objTime, cppTime;
+
+            try
+            {
+                smartSystem("stat --format='%Y' " + objs[objs.size() - 1] + " " + cpps[cpps.size() - 1] + " >.build/temp2.txt");
+                ifstream ages(".build/temp2.txt");
+                tassert(ages.is_open());
+                ages >> objTime >> cppTime;
+                ages.close();
+            }
+            catch (const runtime_error &e)
+            {
+                cout << "(Cannot stat a nonexistant file, moving on)\n";
+                objTime = 0;
+                cppTime = 10000;
+            }
+
+            if (objTime < cppTime)
+            {
+                smartSystem(CC + " -c " + line + " -o " + objs[objs.size() - 1]);
+            }
+            else
+            {
+                cout << tags::green_bold
+                     << objs[objs.size() - 1]
+                     << " is up to date\n"
+                     << tags::reset;
+            }
         }
     }
 
     fin.close();
-    system("rm .build/temp.txt");
+    system("rm .build/temp.txt .build/temp2.txt");
 
     cout << tags::green_bold
          << "Compiled " << objs.size() << " objects.\n"
@@ -147,7 +175,40 @@ void link(const vector<string> objs)
         string name = regex_replace(mainO, regex(".*/__MAIN__"), "");
         name = regex_replace(name, regex("\\.o"), ".out");
 
-        smartSystem(command + mainO + " -o bin/" + name);
+        ///////////////////////
+
+        long int objTime, outTime;
+
+        try
+        {
+            smartSystem("stat --format='%Y' " + mainObjs[objs.size() - 1] + " " + name + " >.build/temp2.txt");
+            ifstream ages(".build/temp2.txt");
+            tassert(ages.is_open());
+            ages >> objTime >> outTime;
+            ages.close();
+        }
+        catch (const runtime_error &e)
+        {
+            cout << "(Cannot stat a nonexistant file, moving on)\n";
+            objTime = 0;
+            outTime = 10000;
+        }
+
+        smartSystem("rm .build/temp2.txt");
+
+        ///////////////////////
+
+        if (objTime < outTime)
+        {
+            smartSystem(command + mainO + " -o bin/" + name);
+        }
+        else
+        {
+            cout << tags::green_bold
+                 << objs[objs.size() - 1]
+                 << " is up to date\n"
+                 << tags::reset;
+        }
     }
 
     cout << tags::green_bold
@@ -238,9 +299,9 @@ int main(const int argc, const char *argv[])
         link(makeObjs());
 
         cout << tags::green_bold << '\n'
-             << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
-             << "Completed. (Output .out file(s) can be found in ./bin/ )\n"
-             << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
+             << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
+             << "Completed. (Output .out files can be found in ./bin)\n"
+             << "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
              << tags::reset;
     }
     catch (runtime_error &e)
