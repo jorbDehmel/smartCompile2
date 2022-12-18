@@ -181,7 +181,7 @@ void link(const vector<string> objs)
 
         try
         {
-            smartSystem("stat --format='%Y' " + mainObjs[objs.size() - 1] + " " + name + " >.build/temp2.txt");
+            smartSystem("stat --format='%Y' " + mainObjs[objs.size() - 1] + " bin/" + name + " >.build/temp2.txt");
             ifstream ages(".build/temp2.txt");
             tassert(ages.is_open());
             ages >> objTime >> outTime;
@@ -190,22 +190,22 @@ void link(const vector<string> objs)
         catch (const runtime_error &e)
         {
             cout << "(Cannot stat a nonexistant file, moving on)\n";
-            objTime = 0;
-            outTime = 10000;
+            objTime = 10000;
+            outTime = 0;
         }
 
         smartSystem("rm .build/temp2.txt");
 
         ///////////////////////
 
-        if (objTime < outTime)
+        if (outTime < objTime)
         {
             smartSystem(command + mainO + " -o bin/" + name);
         }
         else
         {
             cout << tags::green_bold
-                 << objs[objs.size() - 1]
+                 << name
                  << " is up to date\n"
                  << tags::reset;
         }

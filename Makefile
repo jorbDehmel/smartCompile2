@@ -5,4 +5,4 @@ install: sc.out
 	sudo cp sc.out /bin/sc
 
 pclean:
-	rm *.out
+	rm bin/*.out .build/*
