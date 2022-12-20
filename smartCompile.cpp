@@ -21,9 +21,7 @@ string ARGS = "";
 void tassert(bool in)
 {
     if (!in)
-    {
         throw runtime_error("tassert failed");
-    }
     return;
 }
 
@@ -71,6 +69,8 @@ bool isMain(const string &path, string &args)
 
     return regex_search(text, regex("int main"));
 }
+
+//////////////////////////////////
 
 vector<string> makeObjs()
 {
@@ -159,6 +159,7 @@ void link(const vector<string> objs)
          << tags::reset;
 
     string command = CC + ' ' + ARGS + ' ';
+    string libCommand = "ar bin/lib.a ";
 
     vector<string> mainObjs;
 
@@ -167,9 +168,13 @@ void link(const vector<string> objs)
         if (regex_search(o, regex("/__MAIN__")))
             mainObjs.push_back(o);
         else
+        {
             command += o + ' ';
+            libCommand += o + ' ';
+        }
     }
 
+    bool hasUpdated = false;
     for (string mainO : mainObjs)
     {
         string name = regex_replace(mainO, regex(".*/__MAIN__"), "");
@@ -200,6 +205,7 @@ void link(const vector<string> objs)
 
         if (outTime < objTime)
         {
+            hasUpdated = true;
             smartSystem(command + mainO + " -o bin/" + name);
         }
         else
@@ -209,6 +215,32 @@ void link(const vector<string> objs)
                  << " is up to date\n"
                  << tags::reset;
         }
+    }
+
+    cout << tags::reset << flush;
+
+    if (system("stat bin/lib.a") != 0)
+    {
+        hasUpdated = true;
+    }
+
+    if (hasUpdated && libCommand.size() > 13)
+    {
+        cout << tags::green_bold
+             << "Creating library...\n"
+             << tags::reset;
+
+        smartSystem(libCommand);
+
+        cout << tags::green_bold
+             << "Library created.\n"
+             << tags::reset;
+    }
+    else
+    {
+        cout << tags::green_bold
+             << "Project library is up to date or is not needed.\n"
+             << tags::reset;
     }
 
     cout << tags::green_bold
