@@ -9,7 +9,9 @@
 #include "tags.hpp"
 
 using namespace std;
-using namespace boost;
+
+using boost::regex;
+using boost::regex_replace;
 
 //////////////////////////////////
 
@@ -42,6 +44,7 @@ void smartSystem(string command)
 
 bool isMain(const string &path, string &args)
 {
+    // Open file safely
     ifstream f(path);
     if (!f.is_open())
     {
@@ -50,24 +53,30 @@ bool isMain(const string &path, string &args)
         return false;
     }
 
-    string text, line;
-
-    getline(f, text);
-    if (regex_match(text, regex("// SC_ARGS .*")))
+    // Check for SC_ARGS as opening line
+    string line;
+    getline(f, line);
+    if (line.substr(0, 11) == "// SC_ARGS ")
     {
-        cout << tags::violet_bold << "Found arguments " << text.substr() << ".\n"
+        cout << tags::violet_bold << "Found arguments " << line.substr() << ".\n"
              << tags::reset;
 
-        args += ' ' + text.substr(11);
+        args += ' ' + line.substr(11);
     }
 
-    while (getline(f, line))
+    // Scan for main function
+    bool hasMain = (line.find("int main") != string::npos);
+    while (getline(f, line) && !hasMain)
     {
-        text += line + '\n';
+        if (line.find("int main") != string::npos)
+        {
+            hasMain = true;
+        }
     }
+
     f.close();
 
-    return regex_search(text, regex("int main"));
+    return hasMain;
 }
 
 //////////////////////////////////
@@ -78,8 +87,11 @@ vector<string> makeObjs()
          << "Preparing to compile...\n"
          << tags::reset;
 
+    // Print all files within the current directory to .build/temp.txt
+    // and create .build/temp2.txt for dating files
     smartSystem("find -print >.build/temp.txt; touch .build/temp2.txt");
 
+    // Open list of files and prepare to sort them by type
     ifstream fin(".build/temp.txt");
     tassert(fin.is_open());
 
@@ -89,17 +101,18 @@ vector<string> makeObjs()
 
     while (getline(fin, line))
     {
-        // Get age in seconds from epoch:
-        // stat --format='%Y' <path>
-        if (regex_match(line, regex(".*?\\.cpp")))
+        // Check if file is a .cpp
+        if (line.size() > 4 && line.substr(line.size() - 4, 4) == ".cpp")
         {
             cpps.push_back(line);
 
+            // Check if file contains a main function
             if (isMain(line, ARGS))
             {
                 cout << tags::violet_bold << "File " << line << " has a main.\n"
                      << tags::reset;
 
+                // Append to list of obj files to create with __MAIN__ prefex
                 line = regex_replace(line, regex(".*/"), "");
                 objs.push_back(".build/__MAIN__" + regex_replace(line, regex("\\.cpp"), ".o"));
             }
@@ -108,11 +121,13 @@ vector<string> makeObjs()
                 cout << tags::violet_bold << "File " << line << " has no main.\n"
                      << tags::reset;
 
+                // Append to list of obj files to create
+                line = regex_replace(line, regex(".*/"), "");
                 objs.push_back(".build/" + regex_replace(line, regex("\\.cpp"), ".o"));
             }
 
+            // Get the ages of the desired .o file and the source .cpp file
             long int objTime, cppTime;
-
             try
             {
                 smartSystem("stat --format='%Y' " + objs[objs.size() - 1] + " " + cpps[cpps.size() - 1] + " >.build/temp2.txt");
@@ -128,6 +143,7 @@ vector<string> makeObjs()
                 cppTime = 10000;
             }
 
+            // If the .o is older than the .cpp, update .o
             if (objTime < cppTime)
             {
                 smartSystem(CC + " -c " + line + " -o " + objs[objs.size() - 1]);
@@ -142,8 +158,9 @@ vector<string> makeObjs()
         }
     }
 
+    // Clean up
     fin.close();
-    system("rm .build/temp.txt .build/temp2.txt");
+    smartSystem("rm .build/temp.txt .build/temp2.txt");
 
     cout << tags::green_bold
          << "Compiled " << objs.size() << " objects.\n"
@@ -158,14 +175,15 @@ void link(const vector<string> objs)
          << "Linking...\n"
          << tags::reset;
 
+    // Create base commands for compiling and creating a library
     string command = CC + ' ' + ARGS + ' ';
     string libCommand = "ar bin/lib.a ";
 
+    // Sort object into main-having and not
     vector<string> mainObjs;
-
     for (string o : objs)
     {
-        if (regex_search(o, regex("/__MAIN__")))
+        if (o.find("/__MAIN__") != string::npos)
             mainObjs.push_back(o);
         else
         {
@@ -180,10 +198,8 @@ void link(const vector<string> objs)
         string name = regex_replace(mainO, regex(".*/__MAIN__"), "");
         name = regex_replace(name, regex("\\.o"), ".out");
 
-        ///////////////////////
-
+        // Get the ages of the desired .out file and it's source .o file(s)
         long int objTime, outTime;
-
         try
         {
             smartSystem("stat --format='%Y' " + mainObjs[objs.size() - 1] + " bin/" + name + " >.build/temp2.txt");
@@ -199,10 +215,10 @@ void link(const vector<string> objs)
             outTime = 0;
         }
 
+        // Clean up
         smartSystem("rm .build/temp2.txt");
 
-        ///////////////////////
-
+        // If update is needed, update
         if (outTime < objTime)
         {
             hasUpdated = true;
@@ -217,13 +233,13 @@ void link(const vector<string> objs)
         }
     }
 
-    cout << tags::reset << flush;
-
+    // Determine if creating a library is necessary
     if (system("stat bin/lib.a") != 0)
     {
         hasUpdated = true;
     }
 
+    // If needed, update library
     if (hasUpdated && libCommand.size() > 13)
     {
         cout << tags::green_bold
@@ -262,6 +278,7 @@ int main(const int argc, const char *argv[])
              << "~~~~~~~~~~~~~~~~~~~~\n"
              << tags::reset;
 
+        // Parse command line arguments
         string tag;
         for (int i = 1; i < argc; i++)
         {
@@ -326,8 +343,10 @@ int main(const int argc, const char *argv[])
             }
         }
 
+        // Create architecture
         smartSystem("mkdir -p bin .build");
 
+        // Do all the real work
         link(makeObjs());
 
         cout << tags::green_bold << '\n'
