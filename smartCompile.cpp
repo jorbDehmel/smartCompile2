@@ -62,6 +62,7 @@ bool isMain(const string &path, string &args)
              << tags::reset;
 
         args += ' ' + line.substr(11);
+        cout << "New CC: " << CC << args << '\n';
     }
 
     // Scan for main function
@@ -113,8 +114,8 @@ vector<string> makeObjs()
                      << tags::reset;
 
                 // Append to list of obj files to create with __MAIN__ prefex
-                line = regex_replace(line, regex(".*/"), "");
-                objs.push_back(".build/__MAIN__" + regex_replace(line, regex("\\.cpp"), ".o"));
+                string lineTemp = regex_replace(line, regex(".*/"), "");
+                objs.push_back(".build/__MAIN__" + regex_replace(lineTemp, regex("\\.cpp"), ".o"));
             }
             else
             {
@@ -122,8 +123,8 @@ vector<string> makeObjs()
                      << tags::reset;
 
                 // Append to list of obj files to create
-                line = regex_replace(line, regex(".*/"), "");
-                objs.push_back(".build/" + regex_replace(line, regex("\\.cpp"), ".o"));
+                string lineTemp = regex_replace(line, regex(".*/"), "");
+                objs.push_back(".build/" + regex_replace(lineTemp, regex("\\.cpp"), ".o"));
             }
 
             // Get the ages of the desired .o file and the source .cpp file
@@ -146,7 +147,7 @@ vector<string> makeObjs()
             // If the .o is older than the .cpp, update .o
             if (objTime < cppTime)
             {
-                smartSystem(CC + " -c " + line + " -o " + objs[objs.size() - 1]);
+                smartSystem(CC + ARGS + " -c " + line + " -o " + objs[objs.size() - 1]);
             }
             else
             {
@@ -160,7 +161,7 @@ vector<string> makeObjs()
 
     // Clean up
     fin.close();
-    smartSystem("rm .build/temp.txt .build/temp2.txt");
+    system("rm .build/temp.txt .build/temp2.txt");
 
     cout << tags::green_bold
          << "Compiled " << objs.size() << " objects.\n"
@@ -176,7 +177,7 @@ void link(const vector<string> objs)
          << tags::reset;
 
     // Create base commands for compiling and creating a library
-    string command = CC + ' ' + ARGS + ' ';
+    string command = CC + ARGS + ' ';
     string libCommand = "ar bin/lib.a ";
 
     // Sort object into main-having and not
@@ -192,17 +193,25 @@ void link(const vector<string> objs)
         }
     }
 
+    cout << "Sorted.\n";
+
     bool hasUpdated = false;
     for (string mainO : mainObjs)
     {
+        cout << "Linking from " << mainO << '\n';
+
         string name = regex_replace(mainO, regex(".*/__MAIN__"), "");
         name = regex_replace(name, regex("\\.o"), ".out");
+
+        cout << "Fixed name: " << name << '\n';
 
         // Get the ages of the desired .out file and it's source .o file(s)
         long int objTime, outTime;
         try
         {
+            cout << "212\t" << mainObjs.size() << '\n';
             smartSystem("stat --format='%Y' " + mainObjs[objs.size() - 1] + " bin/" + name + " >.build/temp2.txt");
+            cout << "214\n";
             ifstream ages(".build/temp2.txt");
             tassert(ages.is_open());
             ages >> objTime >> outTime;
@@ -215,8 +224,12 @@ void link(const vector<string> objs)
             outTime = 0;
         }
 
+        cout << "Linked.\n";
+
         // Clean up
         smartSystem("rm .build/temp2.txt");
+
+        cout << "Cleaned up.\n";
 
         // If update is needed, update
         if (outTime < objTime)
@@ -231,6 +244,8 @@ void link(const vector<string> objs)
                  << " is up to date\n"
                  << tags::reset;
         }
+
+        cout << "Archive finished.\n";
     }
 
     // Determine if creating a library is necessary
